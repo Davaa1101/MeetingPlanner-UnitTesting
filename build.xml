@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MeetingPlanner" default="compile" basedir=".">
+    
+    <!-- Project properties -->
+    <property name="src.dir" value="src/main/java"/>
+    <property name="test.src.dir" value="src/test/java"/>
+    <property name="build.dir" value="build"/>
+    <property name="build.classes.dir" value="${build.dir}/classes"/>
+    <property name="build.test.classes.dir" value="${build.dir}/test-classes"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="doc.dir" value="doc"/>
+    <property name="reports.dir" value="reports"/>
+    <property name="junit.reports.dir" value="${reports.dir}/junit"/>
+    
+    <!-- Define the classpath -->
+    <path id="classpath">
+        <fileset dir="${lib.dir}" includes="**/*.jar" erroronmissingdir="false"/>
+    </path>
+    
+    <path id="test.classpath">
+        <path refid="classpath"/>
+        <pathelement location="${build.classes.dir}"/>
+        <pathelement location="${build.test.classes.dir}"/>
+    </path>
+    
+    <!-- Initialize build directories -->
+    <target name="init">
+        <echo message="Initializing build directories..."/>
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes.dir}"/>
+        <mkdir dir="${build.test.classes.dir}"/>
+        <mkdir dir="${lib.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+        <mkdir dir="${reports.dir}"/>
+        <mkdir dir="${junit.reports.dir}"/>
+    </target>
+    
+    <!-- Clean build directories -->
+    <target name="clean" description="Clean all build artifacts">
+        <echo message="Cleaning build directories..."/>
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+        <delete dir="${reports.dir}"/>
+    </target>
+    
+    <!-- Download JUnit if not present -->
+    <target name="download-junit" depends="init" unless="junit.present">
+        <echo message="Downloading JUnit libraries..."/>
+        <mkdir dir="${lib.dir}"/>
+        <get src="https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar" 
+             dest="${lib.dir}/junit-4.13.2.jar" 
+             usetimestamp="true"
+             ignoreerrors="true"/>
+        <get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar" 
+             dest="${lib.dir}/hamcrest-core-1.3.jar" 
+             usetimestamp="true"
+             ignoreerrors="true"/>
+    </target>
+    
+    <!-- Check if JUnit is available -->
+    <target name="check-junit">
+        <available file="${lib.dir}/junit-4.13.2.jar" property="junit.present"/>
+    </target>
+    
+    <!-- Compile main source code -->
+    <target name="compile" depends="init,check-junit,download-junit" description="Compile main source code">
+        <echo message="Compiling main source code..."/>
+        <javac srcdir="${src.dir}" 
+               destdir="${build.classes.dir}" 
+               classpathref="classpath"
+               includeantruntime="false"
+               debug="true"
+               debuglevel="lines,vars,source">
+            <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+    </target>
+    
+    <!-- Compile test source code -->
+    <target name="compile-tests" depends="compile" description="Compile test source code">
+        <echo message="Compiling test source code..."/>
+        <javac srcdir="${test.src.dir}" 
+               destdir="${build.test.classes.dir}" 
+               classpathref="test.classpath"
+               includeantruntime="false"
+               debug="true"
+               debuglevel="lines,vars,source">
+            <compilerarg value="-Xlint:unchecked"/>
+        </javac>
+    </target>
+    
+    <!-- Run unit tests -->
+    <target name="test" depends="compile-tests" description="Run all unit tests">
+        <echo message="Running unit tests..."/>
+        <junit printsummary="yes" 
+               haltonfailure="no" 
+               haltonerror="no"
+               fork="yes">
+            <classpath refid="test.classpath"/>
+            
+            <formatter type="plain"/>
+            <formatter type="xml"/>
+            
+            <batchtest todir="${junit.reports.dir}">
+                <fileset dir="${test.src.dir}">
+                    <include name="**/*Test.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        
+        <echo message=""/>
+        <echo message="=== TEST RESULTS SUMMARY ==="/>
+        <echo message="Check ${junit.reports.dir} for detailed test reports"/>
+        <echo message="XML reports: ${junit.reports.dir}/TEST-*.xml"/>
+        <echo message="Text reports: ${junit.reports.dir}/TEST-*.txt"/>
+    </target>
+    
+    <!-- Run a specific test class -->
+    <target name="test-single" depends="compile-tests" description="Run a single test class (use -Dtest.class=ClassName)">
+        <fail unless="test.class" message="Please specify test class with -Dtest.class=ClassName"/>
+        <echo message="Running test class: ${test.class}"/>
+        <junit printsummary="yes" 
+               haltonfailure="no" 
+               haltonerror="no"
+               fork="yes">
+            <classpath refid="test.classpath"/>
+            <formatter type="plain"/>
+            <test name="edu.sc.csce747.MeetingPlanner.${test.class}" 
+                  todir="${junit.reports.dir}"/>
+        </junit>
+    </target>
+    
+    <!-- Generate Javadoc -->
+    <target name="javadoc" depends="compile" description="Generate Javadoc documentation">
+        <echo message="Generating Javadoc documentation..."/>
+        <delete dir="${doc.dir}"/>
+        <mkdir dir="${doc.dir}"/>
+        
+        <javadoc destdir="${doc.dir}"
+                 author="true"
+                 version="true"
+                 use="true"
+                 windowtitle="Meeting Planner API Documentation"
+                 doctitle="Meeting Planner System"
+                 header="&lt;b&gt;Meeting Planner&lt;/b&gt;"
+                 footer="&lt;b&gt;Meeting Planner System&lt;/b&gt;"
+                 classpathref="classpath">
+            
+            <packageset dir="${src.dir}" defaultexcludes="yes">
+                <include name="edu/sc/csce747/MeetingPlanner/**"/>
+            </packageset>
+            
+            <link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
+            
+            <group title="Core Classes" packages="edu.sc.csce747.MeetingPlanner"/>
+            
+        </javadoc>
+        
+        <echo message=""/>
+        <echo message="=== JAVADOC GENERATED ==="/>
+        <echo message="Documentation available at: ${doc.dir}/index.html"/>
+    </target>
+    
+    <!-- Create JAR file -->
+    <target name="jar" depends="compile" description="Create JAR file">
+        <echo message="Creating JAR file..."/>
+        <jar destfile="${dist.dir}/${ant.project.name}.jar" 
+             basedir="${build.classes.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="edu.sc.csce747.MeetingPlanner.PlannerInterface"/>
+                <attribute name="Implementation-Title" value="Meeting Planner System"/>
+                <attribute name="Implementation-Version" value="1.0"/>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Built-Date" value="${DSTAMP}"/>
+            </manifest>
+        </jar>
+        <echo message="JAR created: ${dist.dir}/${ant.project.name}.jar"/>
+    </target>
+    
+    <!-- Run the application -->
+    <target name="run" depends="jar" description="Run the Meeting Planner application">
+        <echo message="Running Meeting Planner application..."/>
+        <java jar="${dist.dir}/${ant.project.name}.jar" fork="true"/>
+    </target>
+    
+    <!-- Generate test coverage report (if tools available) -->
+    <target name="test-coverage" depends="test" description="Generate test coverage report">
+        <echo message="Test coverage analysis not implemented in this basic build script"/>
+        <echo message="Consider integrating with JaCoCo or similar tools for coverage analysis"/>
+    </target>
+    
+    <!-- All: clean, compile, test, javadoc, jar -->
+    <target name="all" depends="clean,compile,test,javadoc,jar" description="Clean build with tests, docs and JAR">
+        <echo message=""/>
+        <echo message="=== BUILD COMPLETE ==="/>
+        <echo message="- Source compiled"/>
+        <echo message="- Tests executed"/>
+        <echo message="- Documentation generated"/>
+        <echo message="- JAR created"/>
+        <echo message=""/>
+        <echo message="Build artifacts:"/>
+        <echo message="  Classes: ${build.classes.dir}"/>
+        <echo message="  Tests: ${junit.reports.dir}"/>
+        <echo message="  Docs: ${doc.dir}/index.html"/>  
+        <echo message="  JAR: ${dist.dir}/${ant.project.name}.jar"/>
+    </target>
+    
+    <!-- Development build (no jar, no clean) -->
+    <target name="dev" depends="compile,test" description="Quick development build">
+        <echo message="Development build complete"/>
+    </target>
+    
+    <!-- Help target -->
+    <target name="help" description="Show available targets">
+        <echo message=""/>
+        <echo message="=== MEETING PLANNER BUILD SCRIPT ==="/>
+        <echo message="Available targets:"/>
+        <echo message=""/>
+        <echo message="  compile      : Compile main source code"/>
+        <echo message="  compile-tests: Compile test source code"/>
+        <echo message="  test         : Run all unit tests"/>
+        <echo message="  test-single  : Run single test (use -Dtest.class=ClassName)"/>
+        <echo message="  javadoc      : Generate API documentation"/>
+        <echo message="  jar          : Create executable JAR file"/>
+        <echo message="  run          : Run the application"/>
+        <echo message="  all          : Complete build (clean+compile+test+docs+jar)"/>
+        <echo message="  dev          : Quick development build (compile+test)"/>
+        <echo message="  clean        : Clean all build artifacts"/>
+        <echo message="  help         : Show this help message"/>
+        <echo message=""/>
+        <echo message="Examples:"/>
+        <echo message="  ant test                    # Run all tests"/>
+        <echo message="  ant test-single -Dtest.class=CalendarTest  # Run specific test"/>
+        <echo message="  ant javadoc                 # Generate documentation"/>
+        <echo message="  ant all                     # Complete build"/>
+        <echo message=""/>
+    </target>
+    
+</project>

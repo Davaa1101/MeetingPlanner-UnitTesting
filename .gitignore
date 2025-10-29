@@ -1,0 +1,22 @@
+# Meeting Planner - Build and Test Files
+build/
+dist/
+reports/
+*.class
+*.jar
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files  
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
